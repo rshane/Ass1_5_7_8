@@ -216,33 +216,63 @@ public class imageReader {
 		File outputFile = new File(args[1]);
 		String operation = args[2];
 		int antiAliasing = Integer.parseInt(args[3]);
-		int width, height = 0;
+		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
+		int icol, irow, nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, nbrAvg = 0;
 		byte[] bytes = null;
 		long inputLen = inputFile.length();
 		long totalFrames = 0; 
+		float resampleWidth, resampleHeight = 0;
+		BufferedImage inputImg, outputImg = null;
 		
 		if (operation.equals("HD2SD")) {
-			width = 352;
-			height = 288;
-			totalFrames = inputLen/(width*height*3);
-			bytes = RGBFile2Bytes(inputFile, width, height);
-			BufferedImage[] allFrames = bytes2IMG(width, height, totalFrames, bytes);
-			img =  allFrames[0];
+			inputWidth = 960;
+			inputHeight = 540;
+			outputWidth = 176;
+			outputHeight = 144;
+			resampleWidth = (float) inputWidth/outputWidth;
+			resampleHeight = (float) inputHeight/outputHeight;
+			outputImg = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
+			totalFrames = inputLen/(inputWidth*inputHeight*3);
+			
+			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
+			BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
+			
+			inputImg =  allFramesInput[0];
 			int rgb = img.getRGB(0, 0);
 			WritableRaster imgRaster = img.getRaster();
-			
-			
-			
+			int frameIndex = 0;
+			inputImg =allFramesInput[frameIndex];
+			int orow = 0, ocol = 0, crntPxl = 0;
+			for(float inputRow = resampleHeight; inputRow < inputHeight; inputRow=inputRow+resampleHeight){
+				for(float inputCol = resampleWidth; inputCol < inputWidth; inputCol=inputCol+resampleWidth){
+					icol = (int) inputCol; // column rounded to nearest int
+					irow = (int) inputRow;
+					//grab all adjacent pixels
+					nbrW = inputImg.getRGB(icol - 1, irow); //left neighbor
+					nbrNW = inputImg.getRGB(icol - 1, irow + 1); //top left neighbor
+					nbrN = inputImg.getRGB(icol, irow + 1); //above neighbor
+					nbrNE = inputImg.getRGB(icol + 1, irow + 1); //top right neighbor
+					nbrE = inputImg.getRGB(icol + 1, irow); //right neighbor
+					nbrSE = inputImg.getRGB(icol + 1, irow - 1); //bottom right neighbor
+					nbrS = inputImg.getRGB(icol - 1, irow); //bottom neighbor
+					nbrSW = inputImg.getRGB(icol - 1, irow - 1); //bottom left neighbor
+					//Avg all neighbors
+					nbrAvg = (nbrW + nbrNW + nbrN + nbrNE + nbrE + nbrSE + nbrS + nbrSW)/8;
+					
+					outputImg.setRGB(ocol, orow, nbrAvg);
+					ocol++;
+				}
+				orow++;
+			}
 		}
-		
 		
 	}
 
 
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
-		ren.showIms(args);
-	//	ren.resize(args);
+		//ren.showIms(args);
+		ren.resize(args);
 	}
 
 }
