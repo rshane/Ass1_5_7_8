@@ -157,7 +157,7 @@ public class imageReader {
 		long computeTime = 0;
 
 		bytes = RGBFile2Bytes(file, width, height);
-		BufferedImage[] allFrames = bytes2IMG(width, height, totalFrames, bytes);
+	//	BufferedImage[] allFrames = bytes2IMG(width, height, totalFrames, bytes);
 
 		// Use labels to display the images
 		frame = new JFrame();
@@ -179,11 +179,25 @@ public class imageReader {
 		c.gridx = 0;
 		c.gridy = 0;
 		frame.getContentPane().add(lbText1, c);
-			
+		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);		
 	
-		for(int frameIndex = 0; frameIndex < allFrames.length; frameIndex++){
+		for(int frameIndex = 0; frameIndex < totalFrames; frameIndex++){
+				//ind contains where frameNumber is located in bytes array	
+			int ind = width*height*frameIndex*3;
 			startTime = System.currentTimeMillis();
-			img = allFrames[frameIndex];
+			for(int y = 0; y < height; y++){
+				for(int x = 0; x < width; x++){			
+					byte a = 0;
+					byte r = bytes[ind];
+					byte g = bytes[ind+height*width];
+					byte b = bytes[ind+height*width*2]; 
+					int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					//int pix = ((a << 24) + (r << 16) + (g << 8) + b); bit shifting
+					img.setRGB(x,y,pix);
+					ind++;
+				}
+			}
+
 			computeTime = System.currentTimeMillis() - startTime;
 			lbIm1.setIcon(new ImageIcon(img));
 			c.fill = GridBagConstraints.HORIZONTAL;
@@ -208,8 +222,8 @@ public class imageReader {
 				frameIndex = 0;
 			}
 		}
-
 	}
+
 	
 	public void displayImg(BufferedImage inputImg, int width, int height) {
 		frame = new JFrame();
@@ -378,8 +392,8 @@ public class imageReader {
 
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
-		//ren.showIms(args);
-		ren.resize(args);
+		ren.showIms(args);
+		//ren.resize(args);
 	}
 
 }
