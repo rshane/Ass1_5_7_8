@@ -138,6 +138,7 @@ public class imageReader {
 
 	}
 	
+	
 	public void showIms(String[] args){
 		int width = Integer.parseInt(args[1]);
 		int height = Integer.parseInt(args[2]);
@@ -211,13 +212,46 @@ public class imageReader {
 
 	}
 	
+	public void displayImg(BufferedImage inputImg, int width, int height) {
+		frame = new JFrame();
+		//when click x button frame closes
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//GridBagLayout places components in a grid of rows and columns
+		GridBagLayout gLayout = new GridBagLayout();
+		frame.getContentPane().setLayout(gLayout);
+		String result = String.format("Video height: %d, width: %d", height, width);
+		JLabel lbText1 = new JLabel(result);
+		lbText1.setHorizontalAlignment(SwingConstants.CENTER);
+		lbIm1 = new JLabel();
+		
+		GridBagConstraints c = new GridBagConstraints();
+		//Stretches frame horizontally
+		c.fill = GridBagConstraints.HORIZONTAL; //Resize the component horizontally but not vertically
+		c.anchor = GridBagConstraints.CENTER;
+		c.weightx = 0.5; //Specifies how to distribute extra horizontal space
+		c.gridx = 0;
+		c.gridy = 0;
+		frame.getContentPane().add(lbText1, c);
+		lbIm1.setIcon(new ImageIcon(inputImg));
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridx = 0;
+		c.gridy = 1;
+		frame.getContentPane().add(lbIm1, c);
+			
+		frame.pack();
+
+		frame.setVisible(true);
+		img.flush();		
+	}
+	
+
 	public void resize(String[] args){
 		File inputFile = new File(args[0]);
 		File outputFile = new File(args[1]);
 		String operation = args[2];
 		int antiAliasing = Integer.parseInt(args[3]);
 		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
-		int icol, irow, nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, nbrAvg = 0;
+		int icol, irow, nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, nbrAvg, cPxl = 0;
 		byte[] bytes = null;
 		long inputLen = inputFile.length();
 		long totalFrames = 0; 
@@ -237,33 +271,80 @@ public class imageReader {
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 			BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
 			
-			inputImg =  allFramesInput[0];
-			int rgb = img.getRGB(0, 0);
-			WritableRaster imgRaster = img.getRaster();
-			int frameIndex = 0;
+		
+
+			int frameIndex = 50;
 			inputImg =allFramesInput[frameIndex];
+			displayImg(inputImg, inputWidth, inputHeight);
 			int orow = 0, ocol = 0, crntPxl = 0;
-			for(float inputRow = resampleHeight; inputRow < inputHeight; inputRow=inputRow+resampleHeight){
-				for(float inputCol = resampleWidth; inputCol < inputWidth; inputCol=inputCol+resampleWidth){
-					icol = (int) inputCol; // column rounded to nearest int
-					irow = (int) inputRow;
-					//grab all adjacent pixels
-					nbrW = inputImg.getRGB(icol - 1, irow); //left neighbor
-					nbrNW = inputImg.getRGB(icol - 1, irow + 1); //top left neighbor
-					nbrN = inputImg.getRGB(icol, irow + 1); //above neighbor
-					nbrNE = inputImg.getRGB(icol + 1, irow + 1); //top right neighbor
-					nbrE = inputImg.getRGB(icol + 1, irow); //right neighbor
-					nbrSE = inputImg.getRGB(icol + 1, irow - 1); //bottom right neighbor
-					nbrS = inputImg.getRGB(icol - 1, irow); //bottom neighbor
-					nbrSW = inputImg.getRGB(icol - 1, irow - 1); //bottom left neighbor
-					//Avg all neighbors
-					nbrAvg = (nbrW + nbrNW + nbrN + nbrNE + nbrE + nbrSE + nbrS + nbrSW)/8;
+			for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
+				irow = (int) (counterRow * resampleHeight);
+				ocol = 0;
+				for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
+					icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
+					 
+					//grab all adjacent pixels and center pixel
+					cPxl = inputImg.getRGB(icol, irow);
+					//int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+					byte r = (byte) ((0x00ff0000 & cPxl) >> 16);
+					byte g = (byte) ((0x0000ff00 & cPxl) >> 8);
+					byte b = (byte) (0x000000ff & cPxl);
+					
+					if (antiAliasing == 1) { 
+						nbrW = inputImg.getRGB(icol - 1, irow); //left neighbor
+						nbrNW = inputImg.getRGB(icol - 1, irow + 1); //top left neighbor
+						nbrN = inputImg.getRGB(icol, irow + 1); //above neighbor
+						nbrNE = inputImg.getRGB(icol + 1, irow + 1); //top right neighbor
+						nbrE = inputImg.getRGB(icol + 1, irow); //right neighbor
+						nbrSE = inputImg.getRGB(icol + 1, irow - 1); //bottom right neighbor
+						nbrS = inputImg.getRGB(icol - 1, irow); //bottom neighbor
+						nbrSW = inputImg.getRGB(icol - 1, irow - 1); //bottom left neighbor
+						//Avg all neighbors
+						nbrAvg = (cPxl + nbrW + nbrNW + nbrN + nbrNE + nbrE + nbrSE + nbrS + nbrSW)/9;
+					} else {
+						nbrAvg = cPxl;
+					}
 					
 					outputImg.setRGB(ocol, orow, nbrAvg);
+					if (counterCol == 175) {
+						System.out.println("test line 303");
+					}
 					ocol++;
 				}
 				orow++;
 			}
+			// Use labels to display the images
+			frame = new JFrame();
+			//when click x button frame closes
+			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			//GridBagLayout places components in a grid of rows and columns
+			GridBagLayout gLayout = new GridBagLayout();
+			frame.getContentPane().setLayout(gLayout);
+			String result = String.format("Video height: %d, width: %d", outputHeight, outputWidth);
+			JLabel lbText1 = new JLabel(result);
+			lbText1.setHorizontalAlignment(SwingConstants.CENTER);
+			lbIm1 = new JLabel();
+			
+			GridBagConstraints c = new GridBagConstraints();
+			//Stretches frame horizontally
+			c.fill = GridBagConstraints.HORIZONTAL; //Resize the component horizontally but not vertically
+			c.anchor = GridBagConstraints.CENTER;
+			c.weightx = 0.5; //Specifies how to distribute extra horizontal space
+			c.gridx = 0;
+			c.gridy = 0;
+			frame.getContentPane().add(lbText1, c);
+			lbIm1.setIcon(new ImageIcon(outputImg));
+			c.fill = GridBagConstraints.HORIZONTAL;
+			c.gridx = 0;
+			c.gridy = 1;
+			frame.getContentPane().add(lbIm1, c);
+				
+			frame.pack();
+
+			frame.setVisible(true);
+			img.flush();
+			
+				
 		}
 		
 	}
