@@ -120,7 +120,7 @@ public class imageReader {
 			//ind contains where frameNumber is located in bytes array	
 			int ind = width*height*frameIndex*3;
 			for(int y = 0; y < height; y++){
-				for(int x = 0; x < width; x++){				
+				for(int x = 0; x < width; x++){			
 					byte a = 0;
 					byte r = bytes[ind];
 					byte g = bytes[ind+height*width];
@@ -194,8 +194,7 @@ public class imageReader {
 			frame.pack();
 
 			frame.setVisible(true);
-			System.out.println(String.format("sleepTime: %d, computeTime: %d, nst:%d, frame:%d", sleepTime, computeTime,sleepTime - computeTime, frameIndex));
-			
+						
 			try {
 				Thread.sleep(sleepTime - computeTime);
 			} catch (InterruptedException e) {
@@ -251,7 +250,9 @@ public class imageReader {
 		String operation = args[2];
 		int antiAliasing = Integer.parseInt(args[3]);
 		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
-		int icol, irow, nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, nbrAvg, cPxl = 0;
+		int icol, irow = 0;
+		int nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, cPxl = 0;
+		int  nbrAvg = 0;
 		byte[] bytes = null;
 		long inputLen = inputFile.length();
 		long totalFrames = 0; 
@@ -286,29 +287,54 @@ public class imageReader {
 					//grab all adjacent pixels and center pixel
 					cPxl = inputImg.getRGB(icol, irow);
 					//int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-					byte r = (byte) ((0x00ff0000 & cPxl) >> 16);
-					byte g = (byte) ((0x0000ff00 & cPxl) >> 8);
-					byte b = (byte) (0x000000ff & cPxl);
-					
+
 					if (antiAliasing == 1) { 
+						int cPxlR = 0x00ff0000 & cPxl;
+						int cPxlG = 0x0000ff00 & cPxl;
+						int cPxlB = 0x000000ff & cPxl;
 						nbrW = inputImg.getRGB(icol - 1, irow); //left neighbor
+						int nbrWR = 0x00ff0000 & cPxl;
+						int nbrWG = 0x0000ff00 & cPxl;
+						int nbrWB = 0x000000ff & cPxl;
 						nbrNW = inputImg.getRGB(icol - 1, irow + 1); //top left neighbor
+						int nbrNWR = 0x00ff0000 & cPxl;
+						int nbrNWG = 0x0000ff00 & cPxl;
+						int nbrNWB = 0x000000ff & cPxl;
 						nbrN = inputImg.getRGB(icol, irow + 1); //above neighbor
+						int nbrNR = 0x00ff0000 & cPxl;
+						int nbrNG = 0x0000ff00 & cPxl;
+						int nbrNB = 0x000000ff & cPxl;
 						nbrNE = inputImg.getRGB(icol + 1, irow + 1); //top right neighbor
+						int nbrNER = 0x00ff0000 & cPxl;
+						int nbrNEG = 0x0000ff00 & cPxl;
+						int nbrNEB = 0x000000ff & cPxl;
 						nbrE = inputImg.getRGB(icol + 1, irow); //right neighbor
+						int nbrER = 0x00ff0000 & cPxl;
+						int nbrEG = 0x0000ff00 & cPxl;
+						int nbrEB = 0x000000ff & cPxl;
 						nbrSE = inputImg.getRGB(icol + 1, irow - 1); //bottom right neighbor
+						int nbrSER = 0x00ff0000 & cPxl;
+						int nbrSEG = 0x0000ff00 & cPxl;
+						int nbrSEB = 0x000000ff & cPxl;
 						nbrS = inputImg.getRGB(icol - 1, irow); //bottom neighbor
+						int nbrSR = 0x00ff0000 & cPxl;
+						int nbrSG = 0x0000ff00 & cPxl;
+						int nbrSB = 0x000000ff & cPxl;
 						nbrSW = inputImg.getRGB(icol - 1, irow - 1); //bottom left neighbor
+						int nbrSWR = 0x00ff0000 & cPxl;
+						int nbrSWG = 0x0000ff00 & cPxl;
+						int nbrSWB = 0x000000ff & cPxl;
 						//Avg all neighbors
-						nbrAvg = (cPxl + nbrW + nbrNW + nbrN + nbrNE + nbrE + nbrSE + nbrS + nbrSW)/9;
+						int avgR = 0x00ff0000 & (cPxlR + nbrWR + nbrNWR + nbrNR + nbrNER + nbrER + nbrSER + nbrSR + nbrSWR)/9;
+						int avgG = 0x0000ff00 & (cPxlG + nbrWG + nbrNWG + nbrNG + nbrNEG + nbrEG + nbrSEG + nbrSG + nbrSWG)/9;
+						int avgB = 0x000000ff & (cPxlB + nbrWB + nbrNWB + nbrNB + nbrNEB + nbrEB + nbrSEB + nbrSB + nbrSWB)/9;
+ 
+						nbrAvg = 0xff000000 | (avgR + avgG + avgB);
 					} else {
 						nbrAvg = cPxl;
 					}
 					
 					outputImg.setRGB(ocol, orow, nbrAvg);
-					if (counterCol == 175) {
-						System.out.println("test line 303");
-					}
 					ocol++;
 				}
 				orow++;
