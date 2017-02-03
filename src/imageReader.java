@@ -265,7 +265,7 @@ public class imageReader {
 		int antiAliasing = Integer.parseInt(args[3]);
 		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
 		int icol, irow = 0;
-		int nbrW, nbrNW, nbrN, nbrNE, nbrE, nbrSE, nbrS, nbrSW, cPxl = 0;
+		int cPxl = 0;
 		int  nbrAvg = 0;
 		byte[] bytes = null;
 		long inputLen = inputFile.length();
@@ -276,8 +276,8 @@ public class imageReader {
 		if (operation.equals("HD2SD")) {
 			inputWidth = 960;
 			inputHeight = 540;
-			outputWidth = 176;
-			outputHeight = 144;
+			outputWidth = 900;//176;
+			outputHeight = 500;//144;
 			resampleWidth = (float) inputWidth/outputWidth;
 			resampleHeight = (float) inputHeight/outputHeight;
 			outputImg = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
@@ -286,21 +286,56 @@ public class imageReader {
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 			BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
 			
-		
 
 			int frameIndex = 50;
 			inputImg =allFramesInput[frameIndex];
 			displayImg(inputImg, inputWidth, inputHeight);
-			int orow = 0, ocol = 0, crntPxl = 0;
+			int orow = 0, ocol = 0;
+			int index = 0; //Points to which pixel you are on a frame
+			//int nbrW, nbrE, nbrS, nbrN, nbrNW, nbrNE, nbrSW, nbrSE;
 			for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
 				irow = (int) (counterRow * resampleHeight);
 				ocol = 0;
 				for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
 					icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
-					 
+					index = inputHeight*inputWidth*3*frameIndex +  (irow) * inputWidth + icol;
+					//int ind = width*height*frameIndex*3;
+					byte a = 0;
+					int cPxlR = (bytes[index] & 0xff) << 16;
+					int cPxlG = (bytes[index+inputHeight*inputWidth] & 0xff) << 8;
+					int cPxlB = (bytes[index+inputHeight*inputWidth*2] & 0xff); 
+					cPxl = 0xff000000 | cPxlR | cPxlG | cPxlB; 
+					nbrAvg = cPxl;
+					if (antiAliasing == 1) {
+						//get all cPxl neighbors and average them
+						int nbrIndex, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
+						int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0;
+						for(int y= -1; y < 2; y++) {
+							for(int x =-1; x < 2; x++) {
+								nbrIndex = inputHeight*inputWidth*3*frameIndex +  (irow + y) * inputWidth + (icol + x);
+								int nbrR = (bytes[nbrIndex] & 0xff) << 16;
+								int nbrG = (bytes[nbrIndex+inputHeight*inputWidth] & 0xff) << 8;
+								int nbrB = (bytes[nbrIndex+inputHeight*inputWidth*2] & 0xff);
+								totalNbrR = totalNbrR + nbrR;
+								totalNbrG = totalNbrG + nbrG;
+								totalNbrB = totalNbrB + nbrB;
+							}
+						}
+						nbrAvgR = 0x00ff0000 & ((totalNbrR + cPxlR)/9);
+						nbrAvgG = 0x0000ff00 & ((totalNbrG + cPxlG)/9);
+						nbrAvgB = 0x000000ff & ((totalNbrB + cPxlB)/9);
+						nbrAvg = 0xff000000 | (nbrAvgR | nbrAvgG | nbrAvgB);
+					}
+					outputImg.setRGB(ocol, orow, nbrAvg);
+					ocol++;
+				}
+				orow++;
+			}
+
+				/*
 					//grab all adjacent pixels and center pixel
+														
 					cPxl = inputImg.getRGB(icol, irow);
-					//int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 
 					if (antiAliasing == 1) { 
 						int cPxlR = 0x00ff0000 & cPxl;
@@ -347,12 +382,9 @@ public class imageReader {
 					} else {
 						nbrAvg = cPxl;
 					}
-					
-					outputImg.setRGB(ocol, orow, nbrAvg);
-					ocol++;
-				}
-				orow++;
-			}
+					*/
+
+
 			// Use labels to display the images
 			frame = new JFrame();
 			//when click x button frame closes
@@ -392,8 +424,8 @@ public class imageReader {
 
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
-		ren.showIms(args);
-		//ren.resize(args);
+		//ren.showIms(args);
+		ren.resize(args);
 	}
 
 }
