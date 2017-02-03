@@ -290,7 +290,7 @@ public class imageReader {
 			int frameIndex = 50;
 			inputImg =allFramesInput[frameIndex];
 			displayImg(inputImg, inputWidth, inputHeight);
-			int orow = 0, ocol = 0;
+			int orow = 0, ocol = 0, offset = 0;
 			int index = 0; //Points to which pixel you are on a frame
 			//int nbrW, nbrE, nbrS, nbrN, nbrNW, nbrNE, nbrSW, nbrSE;
 			for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
@@ -298,7 +298,8 @@ public class imageReader {
 				ocol = 0;
 				for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
 					icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
-					index = inputHeight*inputWidth*3*frameIndex +  (irow) * inputWidth + icol;
+					offset = inputHeight*inputWidth*3*frameIndex;
+					index = offset +  (irow - 1) * inputWidth + (icol - 1);
 					//int ind = width*height*frameIndex*3;
 					byte a = 0;
 					int cPxlR = (bytes[index] & 0xff) << 16;
@@ -308,11 +309,11 @@ public class imageReader {
 					nbrAvg = cPxl;
 					if (antiAliasing == 1) {
 						//get all cPxl neighbors and average them
-						int nbrIndex, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
+						int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
 						int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0;
 						for(int y= -1; y < 2; y++) {
 							for(int x =-1; x < 2; x++) {
-								nbrIndex = inputHeight*inputWidth*3*frameIndex +  (irow + y) * inputWidth + (icol + x);
+								nbrIndex = offset + (irow + y) * inputWidth + (icol + x); //help is it irow -1 +y?
 								int nbrR = (bytes[nbrIndex] & 0xff) << 16;
 								int nbrG = (bytes[nbrIndex+inputHeight*inputWidth] & 0xff) << 8;
 								int nbrB = (bytes[nbrIndex+inputHeight*inputWidth*2] & 0xff);
@@ -321,9 +322,9 @@ public class imageReader {
 								totalNbrB = totalNbrB + nbrB;
 							}
 						}
-						nbrAvgR = 0x00ff0000 & ((totalNbrR + cPxlR)/9);
-						nbrAvgG = 0x0000ff00 & ((totalNbrG + cPxlG)/9);
-						nbrAvgB = 0x000000ff & ((totalNbrB + cPxlB)/9);
+						nbrAvgR = 0x00ff0000 & (totalNbrR/9);
+						nbrAvgG = 0x0000ff00 & (totalNbrG/9);
+						nbrAvgB = 0x000000ff & (totalNbrB/9);
 						nbrAvg = 0xff000000 | (nbrAvgR | nbrAvgG | nbrAvgB);
 					}
 					outputImg.setRGB(ocol, orow, nbrAvg);
