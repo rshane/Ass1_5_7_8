@@ -2,6 +2,7 @@
 import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
+import java.nio.file.*;
 import java.util.Arrays;
 
 import javax.swing.*;
@@ -261,6 +262,13 @@ public class imageReader {
 	public void resize(String[] args){
 		File inputFile = new File(args[0]);
 		File outputFile = new File(args[1]);
+		FileOutputStream outputStream = null;
+		try {
+			outputStream = new FileOutputStream(outputFile);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String operation = args[2];
 		int antiAliasing = Integer.parseInt(args[3]);
 		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
@@ -268,156 +276,98 @@ public class imageReader {
 		int cPxl = 0;
 		int  nbrAvg = 0;
 		byte[] bytes = null;
+		byte [] outputBytes = null;
 		long inputLen = inputFile.length();
 		long totalFrames = 0; 
 		float resampleWidth, resampleHeight = 0;
-		BufferedImage inputImg, outputImg = null;
+		BufferedImage outputImg = null;
 		
 		if (operation.equals("HD2SD")) {
 			inputWidth = 960;
 			inputHeight = 540;
-			outputWidth = 900;//176;
-			outputHeight = 500;//144;
+			outputWidth = 176;
+			outputHeight = 144;
 			resampleWidth = (float) inputWidth/outputWidth;
 			resampleHeight = (float) inputHeight/outputHeight;
 			outputImg = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
 			totalFrames = inputLen/(inputWidth*inputHeight*3);
-			
+			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
-			BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
+			//BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
 			
 
-			int frameIndex = 50;
-			inputImg =allFramesInput[frameIndex];
-			displayImg(inputImg, inputWidth, inputHeight);
-			int orow = 0, ocol = 0, offset = 0;
-			int index = 0; //Points to which pixel you are on a frame
-			//int nbrW, nbrE, nbrS, nbrN, nbrNW, nbrNE, nbrSW, nbrSE;
-			for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
-				irow = (int) (counterRow * resampleHeight);
-				ocol = 0;
-				for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
-					icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
-					offset = inputHeight*inputWidth*3*frameIndex;
-					index = offset +  (irow - 1) * inputWidth + (icol - 1);
-					//int ind = width*height*frameIndex*3;
-					byte a = 0;
-					int cPxlR = (bytes[index] & 0xff) << 16;
-					int cPxlG = (bytes[index+inputHeight*inputWidth] & 0xff) << 8;
-					int cPxlB = (bytes[index+inputHeight*inputWidth*2] & 0xff); 
-					cPxl = 0xff000000 | cPxlR | cPxlG | cPxlB; 
-					nbrAvg = cPxl;
-					if (antiAliasing == 1) {
-						//get all cPxl neighbors and average them
-						int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
-						int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0;
-						for(int y= -1; y < 2; y++) {
-							for(int x =-1; x < 2; x++) {
-								nbrIndex = offset + (irow + y) * inputWidth + (icol + x); //help is it irow -1 +y?
-								int nbrR = (bytes[nbrIndex] & 0xff) << 16;
-								int nbrG = (bytes[nbrIndex+inputHeight*inputWidth] & 0xff) << 8;
-								int nbrB = (bytes[nbrIndex+inputHeight*inputWidth*2] & 0xff);
-								totalNbrR = totalNbrR + nbrR;
-								totalNbrG = totalNbrG + nbrG;
-								totalNbrB = totalNbrB + nbrB;
+			int inputOffset = 0;
+			int inputIndex = 0;
+			int outputIndex = 0;
+			//int nbrW, nbrE, nbrS, nbrN, nbrNW, nbrNE, nbrSW, nbrSE
+			for(int frameIndex = 0; frameIndex < totalFrames; frameIndex++){
+				inputOffset = inputHeight*inputWidth*3*frameIndex;
+				// int outputIndex = 0;
+				outputIndex = outputHeight*outputWidth*3*frameIndex; 
+				for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
+					irow = (int) (counterRow * resampleHeight);
+					for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
+						icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
+						inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
+						//int ind = width*height*frameIndex*3;
+						int a = 0;
+						byte cPxlRByte = bytes[inputIndex];
+						byte cPxlGByte = bytes[inputIndex+inputHeight*inputWidth];						
+						byte cPxlBByte = bytes[inputIndex+inputHeight*inputWidth*2];
+						if (antiAliasing == 1) {
+							//get all cPxl neighbors and average them
+							int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
+							int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0;
+							for(int y= -1; y < 2; y++) {
+								for(int x =-1; x < 2; x++) {
+									nbrIndex = inputOffset + (irow + y) * inputWidth + (icol + x); //help is it irow -1 +y?
+									int nbrR = (bytes[nbrIndex] & 0xff) << 16;
+									int nbrG = (bytes[nbrIndex+inputHeight*inputWidth] & 0xff) << 8;
+									int nbrB = (bytes[nbrIndex+inputHeight*inputWidth*2] & 0xff);
+									totalNbrR = totalNbrR + nbrR;
+									totalNbrG = totalNbrG + nbrG;
+									totalNbrB = totalNbrB + nbrB;
+								}
 							}
+							nbrAvgR = 0x00ff0000 & (totalNbrR/9);
+							nbrAvgG = 0x0000ff00 & (totalNbrG/9);
+							nbrAvgB = 0x000000ff & (totalNbrB/9);
+							byte nbrAvgRByte = (byte) (nbrAvgR >> 16);
+							byte nbrAvgGByte = (byte) (nbrAvgG >> 8);
+							byte nbrAvgBByte = (byte) (nbrAvgB);
+	
+							outputBytes[outputIndex] = nbrAvgRByte; //outputIndex
+							outputBytes[outputIndex + outputHeight*outputWidth] = nbrAvgGByte;
+							outputBytes[outputIndex + outputHeight*outputWidth*2] = nbrAvgBByte;		
+						} else {
+							int outputPxl = (counterCol -1) + (counterRow -1 )*outputWidth;
+							outputBytes[outputIndex + outputPxl] = cPxlRByte;
+							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth] = cPxlGByte;
+							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth*2] = cPxlBByte;
+							// int outputRindex = ( frameIndex*3 + 0 ) * outputHeight * outputWidth + outputIndex;
+							// int outputGindex = ( frameIndex*3 + 1 ) * outputHeight * outputWidth + outputIndex;
+							// int outputBindex = ( frameIndex*3 + 2 ) * outputHeight * outputWidth + outputIndex;
+							// outputBytes[outputRindex] = cPxlRByte;
+							// outputBytes[outputGindex] = cPxlGByte;
+							// outputBytes[outputBindex] = cPxlBByte;
 						}
-						nbrAvgR = 0x00ff0000 & (totalNbrR/9);
-						nbrAvgG = 0x0000ff00 & (totalNbrG/9);
-						nbrAvgB = 0x000000ff & (totalNbrB/9);
-						nbrAvg = 0xff000000 | (nbrAvgR | nbrAvgG | nbrAvgB);
+						//outputIndex++;
 					}
-					outputImg.setRGB(ocol, orow, nbrAvg);
-					ocol++;
 				}
-				orow++;
+			//	BufferedImage[] singleFrame =  bytes2IMG(outputWidth, outputHeight, totalFrames, outputBytes);
+			//	BufferedImage testImg = singleFrame[frameIndex];
+			//	displayImg(testImg, outputWidth, outputHeight);
+				
 			}
 
-				/*
-					//grab all adjacent pixels and center pixel
-														
-					cPxl = inputImg.getRGB(icol, irow);
-
-					if (antiAliasing == 1) { 
-						int cPxlR = 0x00ff0000 & cPxl;
-						int cPxlG = 0x0000ff00 & cPxl;
-						int cPxlB = 0x000000ff & cPxl;
-						nbrW = inputImg.getRGB(icol - 1, irow); //left neighbor
-						int nbrWR = 0x00ff0000 & cPxl;
-						int nbrWG = 0x0000ff00 & cPxl;
-						int nbrWB = 0x000000ff & cPxl;
-						nbrNW = inputImg.getRGB(icol - 1, irow + 1); //top left neighbor
-						int nbrNWR = 0x00ff0000 & cPxl;
-						int nbrNWG = 0x0000ff00 & cPxl;
-						int nbrNWB = 0x000000ff & cPxl;
-						nbrN = inputImg.getRGB(icol, irow + 1); //above neighbor
-						int nbrNR = 0x00ff0000 & cPxl;
-						int nbrNG = 0x0000ff00 & cPxl;
-						int nbrNB = 0x000000ff & cPxl;
-						nbrNE = inputImg.getRGB(icol + 1, irow + 1); //top right neighbor
-						int nbrNER = 0x00ff0000 & cPxl;
-						int nbrNEG = 0x0000ff00 & cPxl;
-						int nbrNEB = 0x000000ff & cPxl;
-						nbrE = inputImg.getRGB(icol + 1, irow); //right neighbor
-						int nbrER = 0x00ff0000 & cPxl;
-						int nbrEG = 0x0000ff00 & cPxl;
-						int nbrEB = 0x000000ff & cPxl;
-						nbrSE = inputImg.getRGB(icol + 1, irow - 1); //bottom right neighbor
-						int nbrSER = 0x00ff0000 & cPxl;
-						int nbrSEG = 0x0000ff00 & cPxl;
-						int nbrSEB = 0x000000ff & cPxl;
-						nbrS = inputImg.getRGB(icol - 1, irow); //bottom neighbor
-						int nbrSR = 0x00ff0000 & cPxl;
-						int nbrSG = 0x0000ff00 & cPxl;
-						int nbrSB = 0x000000ff & cPxl;
-						nbrSW = inputImg.getRGB(icol - 1, irow - 1); //bottom left neighbor
-						int nbrSWR = 0x00ff0000 & cPxl;
-						int nbrSWG = 0x0000ff00 & cPxl;
-						int nbrSWB = 0x000000ff & cPxl;
-						//Avg all neighbors
-						int avgR = 0x00ff0000 & (cPxlR + nbrWR + nbrNWR + nbrNR + nbrNER + nbrER + nbrSER + nbrSR + nbrSWR)/9;
-						int avgG = 0x0000ff00 & (cPxlG + nbrWG + nbrNWG + nbrNG + nbrNEG + nbrEG + nbrSEG + nbrSG + nbrSWG)/9;
-						int avgB = 0x000000ff & (cPxlB + nbrWB + nbrNWB + nbrNB + nbrNEB + nbrEB + nbrSEB + nbrSB + nbrSWB)/9;
- 
-						nbrAvg = 0xff000000 | (avgR + avgG + avgB);
-					} else {
-						nbrAvg = cPxl;
-					}
-					*/
-
-
-			// Use labels to display the images
-			frame = new JFrame();
-			//when click x button frame closes
-			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			//GridBagLayout places components in a grid of rows and columns
-			GridBagLayout gLayout = new GridBagLayout();
-			frame.getContentPane().setLayout(gLayout);
-			String result = String.format("Video height: %d, width: %d", outputHeight, outputWidth);
-			JLabel lbText1 = new JLabel(result);
-			lbText1.setHorizontalAlignment(SwingConstants.CENTER);
-			lbIm1 = new JLabel();
-			
-			GridBagConstraints c = new GridBagConstraints();
-			//Stretches frame horizontally
-			c.fill = GridBagConstraints.HORIZONTAL; //Resize the component horizontally but not vertically
-			c.anchor = GridBagConstraints.CENTER;
-			c.weightx = 0.5; //Specifies how to distribute extra horizontal space
-			c.gridx = 0;
-			c.gridy = 0;
-			frame.getContentPane().add(lbText1, c);
-			lbIm1.setIcon(new ImageIcon(outputImg));
-			c.fill = GridBagConstraints.HORIZONTAL;
-			c.gridx = 0;
-			c.gridy = 1;
-			frame.getContentPane().add(lbIm1, c);
-				
-			frame.pack();
-
-			frame.setVisible(true);
-			img.flush();
-			
-				
+			try {
+				outputStream.write(outputBytes);
+				outputStream.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		      				
 		}
 		
 	}
@@ -425,8 +375,9 @@ public class imageReader {
 
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
-		//ren.showIms(args);
 		ren.resize(args);
+		String[] test = {"test/prison_176_144.rgb","176","144","10"};
+		ren.showIms(test);
 	}
 
 }
