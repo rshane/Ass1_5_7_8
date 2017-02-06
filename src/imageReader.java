@@ -258,6 +258,13 @@ public class imageReader {
 		img.flush();		
 	}
 	
+	public byte[] scaleUp(int inputLength, int inputHeight, int inputWidth, int outputWidth, int outputHeight, File inputFile){
+		long totalFrames = inputLength/(inputWidth*inputHeight*3);
+		byte[] outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
+		
+		return outputBytes;
+	}
+	
 
 	public void resize(String[] args){
 		File inputFile = new File(args[0]);
@@ -276,11 +283,10 @@ public class imageReader {
 		int cPxl = 0;
 		int  nbrAvg = 0;
 		byte[] bytes = null;
-		byte [] outputBytes = null;
+		byte[] outputBytes = null;
 		long inputLen = inputFile.length();
 		long totalFrames = 0; 
 		float resampleWidth, resampleHeight = 0;
-		BufferedImage outputImg = null;
 		
 		if (operation.equals("HD2SD")) {
 			inputWidth = 960;
@@ -289,7 +295,6 @@ public class imageReader {
 			outputHeight = 144;
 			resampleWidth = (float) inputWidth/outputWidth;
 			resampleHeight = (float) inputHeight/outputHeight;
-			outputImg = new BufferedImage(outputWidth, outputHeight, BufferedImage.TYPE_INT_RGB);
 			totalFrames = inputLen/(inputWidth*inputHeight*3);
 			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
@@ -309,7 +314,6 @@ public class imageReader {
 					for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
 						icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
 						inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
-						//int ind = width*height*frameIndex*3;
 						int a = 0;
 						byte cPxlRByte = bytes[inputIndex];
 						byte cPxlGByte = bytes[inputIndex+inputHeight*inputWidth];						
@@ -344,20 +348,9 @@ public class imageReader {
 							outputBytes[outputIndex + outputPxl] = cPxlRByte;
 							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth] = cPxlGByte;
 							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth*2] = cPxlBByte;
-							// int outputRindex = ( frameIndex*3 + 0 ) * outputHeight * outputWidth + outputIndex;
-							// int outputGindex = ( frameIndex*3 + 1 ) * outputHeight * outputWidth + outputIndex;
-							// int outputBindex = ( frameIndex*3 + 2 ) * outputHeight * outputWidth + outputIndex;
-							// outputBytes[outputRindex] = cPxlRByte;
-							// outputBytes[outputGindex] = cPxlGByte;
-							// outputBytes[outputBindex] = cPxlBByte;
 						}
-						//outputIndex++;
 					}
-				}
-			//	BufferedImage[] singleFrame =  bytes2IMG(outputWidth, outputHeight, totalFrames, outputBytes);
-			//	BufferedImage testImg = singleFrame[frameIndex];
-			//	displayImg(testImg, outputWidth, outputHeight);
-				
+				}				
 			}
 
 			try {
@@ -369,6 +362,17 @@ public class imageReader {
 			}
 		      				
 		}
+		if (operation.equals("SD2HD")) {
+			inputWidth = 176;
+			inputHeight = 144;
+			outputWidth = 960;
+			outputHeight = 540;
+			resampleWidth = (float) outputWidth/inputWidth;
+			resampleHeight = (float) outputHeight/inputHeight;
+			totalFrames = inputLen/(inputWidth*inputHeight*3);
+			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
+			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
+		}
 		
 	}
 
@@ -376,7 +380,7 @@ public class imageReader {
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
 		ren.resize(args);
-		String[] test = {"test/prison_176_144.rgb","176","144","10"};
+		String[] test = {"/Users/shane/Documents/workspace/imageReader/test/prison_176_144.rgb","176","144","10"};
 		ren.showIms(test);
 	}
 
