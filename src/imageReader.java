@@ -261,6 +261,37 @@ public class imageReader {
 	public byte[] scaleUp(int inputLength, int inputHeight, int inputWidth, int outputWidth, int outputHeight, File inputFile){
 		long totalFrames = inputLength/(inputWidth*inputHeight*3);
 		byte[] outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
+		float resampleWidth = (float) outputWidth/inputWidth;
+		float resampleHeight = (float) outputHeight/inputHeight;
+		byte[] inputBytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
+		int inputOffset = 0;
+		int inputIndex = 0;
+		int outputIndex = 0;
+		int frameIndex = 0;
+		inputOffset = inputHeight*inputWidth*3*frameIndex;
+		outputIndex = outputHeight*outputWidth*3*frameIndex; 
+		for(int irow = 0; irow < inputHeight); irow++) {
+			int copyRows = (int) ((irow +1) * resampleHeight);
+			for(int icol = 0; icol < inputWidth; icol++) {
+				int inputPxlIndex = irow * inputWidth + icol;
+				byte currentRedPxl = inputBytes[inputOffset + inputPxlIndex];
+				byte currentGreenPxl = inputBytes[inputOffset + inputWidth*inputHeight + inputPxlIndex];
+				byte currentBluePxl = inputBytes[inputOffset + 2*inputWidth*inputHeight + inputPxlIndex];
+				int copyCols = (int) ((icol + 1) * resampleWidth);
+				for(int outputRowIterator = copyRows; outputRowIterator >= 0; outputRowIterator--) {
+					for(int outputColIterator = copyCols; outputColIterator >= 0; outputColIterator--) {
+						
+					}
+				}
+						
+				
+			}
+		}
+		(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
+			irow = (int) (counterRow * resampleHeight);
+			for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
+				icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
+				inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
 		
 		return outputBytes;
 	}
