@@ -314,6 +314,7 @@ public class imageReader {
 						byte cPxlRByte = bytes[inputIndex];
 						byte cPxlGByte = bytes[inputIndex+inputHeight*inputWidth];						
 						byte cPxlBByte = bytes[inputIndex+inputHeight*inputWidth*2];
+						int outputPxl = (counterCol -1) + (counterRow -1 )*outputWidth;
 						if (antiAliasing == 1) {
 							//get all cPxl neighbors and average them
 							int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
@@ -336,11 +337,10 @@ public class imageReader {
 							byte nbrAvgGByte = (byte) (nbrAvgG >> 8);
 							byte nbrAvgBByte = (byte) (nbrAvgB);
 	
-							outputBytes[outputIndex] = nbrAvgRByte; //outputIndex
-							outputBytes[outputIndex + outputHeight*outputWidth] = nbrAvgGByte;
-							outputBytes[outputIndex + outputHeight*outputWidth*2] = nbrAvgBByte;		
+							outputBytes[outputIndex + outputPxl] = nbrAvgRByte; //outputIndex
+							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth] = nbrAvgGByte;
+							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth*2] = nbrAvgBByte;		
 						} else {
-							int outputPxl = (counterCol -1) + (counterRow -1 )*outputWidth;
 							outputBytes[outputIndex + outputPxl] = cPxlRByte;
 							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth] = cPxlGByte;
 							outputBytes[outputIndex + outputPxl + outputHeight*outputWidth*2] = cPxlBByte;
