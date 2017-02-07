@@ -255,10 +255,51 @@ public class imageReader {
 		frame.pack();
 
 		frame.setVisible(true);
-		img.flush();		
+		inputImg.flush();		
+	}
+	public byte[] duplicatePixl(int ratioWidth, int ratioHeight, int prevRatioWidth, int prevRatioHeight, int outputWidth, int outputHeight, byte[] outputBytes, int outputFrameIndex, byte inputRedPxl, byte inputGreenPxl, byte inputBluePxl) {
+		int col = ratioWidth - 1;
+		int row = ratioHeight - 1;
+		int elements = (ratioHeight - prevRatioHeight) * (ratioWidth - prevRatioWidth);
+		while (elements > 0) {
+			int crntPxl = row*outputWidth + col;
+			if(row > 539) {
+				System.out.println(String.format("row: %d, col: %d, line266", row, col));
+			}
+			outputBytes[outputFrameIndex + crntPxl] = inputRedPxl; //current red pixel equal to inputRedPxl
+			outputBytes[outputFrameIndex + crntPxl + outputWidth*outputHeight] = inputGreenPxl; //current green pixel equal to inputGreenPxl
+			outputBytes[outputFrameIndex + crntPxl + outputWidth*outputHeight*2] = inputBluePxl; //current blue pixel equal to inputBluePxl
+			if (col == 0) {
+				row--;
+				col = ratioWidth -1;
+				elements --;
+			} else {
+				col--;
+				elements--;
+			}
+		}
+		return outputBytes;
+	}
+	public void playFrame(byte[] outputBytes, int desiredFrame, int width, int height) {
+		BufferedImage desiredImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		int ind = width*height*desiredFrame*3;
+		for(int y = 0; y < height; y++){
+			for(int x = 0; x < width; x++){			
+				byte a = 0;
+				byte r = outputBytes[ind];
+				byte g = outputBytes[ind+height*width];
+				byte b = outputBytes[ind+height*width*2]; 
+				int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+				//int pix = ((a << 24) + (r << 16) + (g << 8) + b); bit shifting
+				desiredImg.setRGB(x,y,pix);
+				ind++;
+			}
+		}
+		displayImg(desiredImg, width, height);
+		
 	}
 	
-	public byte[] scaleUp(int inputLength, int inputHeight, int inputWidth, int outputWidth, int outputHeight, File inputFile){
+	public byte[] scaleUp(long inputLength, int inputHeight, int inputWidth, int outputWidth, int outputHeight, File inputFile){
 		long totalFrames = inputLength/(inputWidth*inputHeight*3);
 		byte[] outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 		float resampleWidth = (float) outputWidth/inputWidth;
@@ -266,33 +307,28 @@ public class imageReader {
 		byte[] inputBytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 		int inputOffset = 0;
 		int inputIndex = 0;
-		int outputIndex = 0;
-		int frameIndex = 0;
-		inputOffset = inputHeight*inputWidth*3*frameIndex;
-		outputIndex = outputHeight*outputWidth*3*frameIndex; 
-		for(int irow = 0; irow < inputHeight); irow++) {
-			int copyRows = (int) ((irow +1) * resampleHeight);
-			for(int icol = 0; icol < inputWidth; icol++) {
-				int inputPxlIndex = irow * inputWidth + icol;
-				byte currentRedPxl = inputBytes[inputOffset + inputPxlIndex];
-				byte currentGreenPxl = inputBytes[inputOffset + inputWidth*inputHeight + inputPxlIndex];
-				byte currentBluePxl = inputBytes[inputOffset + 2*inputWidth*inputHeight + inputPxlIndex];
-				int copyCols = (int) ((icol + 1) * resampleWidth);
-				for(int outputRowIterator = copyRows; outputRowIterator >= 0; outputRowIterator--) {
-					for(int outputColIterator = copyCols; outputColIterator >= 0; outputColIterator--) {
-						
-					}
+		int outputFrameIndex = 0;
+		for(int frameIndex = 0; frameIndex < totalFrames; frameIndex++){
+			inputOffset = inputHeight*inputWidth*3*frameIndex; //frame we are on in smaller picture
+			outputFrameIndex = outputHeight*outputWidth*3*frameIndex; //frame we are on in larger picture
+			int prevResampleHeight = 0;
+			for(int irow = 0; irow < inputHeight; irow++) {
+				int orow = (int) ((irow +1) * resampleHeight); //number of rows need to copy
+				int prevResampleWidth = 0;
+				for(int icol = 0; icol < inputWidth; icol++) {
+					int inputCurntPxlIndex = irow * inputWidth + icol; //current pixel you are on in smaller picture
+					byte inputCurntRedPxl = inputBytes[inputOffset + inputCurntPxlIndex];
+					byte inputCurntGreenPxl = inputBytes[inputOffset + inputWidth*inputHeight + inputCurntPxlIndex];
+					byte inputCurntBluePxl = inputBytes[inputOffset + 2*inputWidth*inputHeight + inputCurntPxlIndex];
+					int ocol = (int) ((icol + 1) * resampleWidth); //ocol is starting from 1 not 0 that is why add 1 to icol
+					outputBytes = duplicatePixl(ocol, orow, prevResampleWidth, prevResampleHeight, outputWidth, outputHeight, outputBytes, outputFrameIndex, inputCurntRedPxl, inputCurntGreenPxl, inputCurntBluePxl);
+					prevResampleWidth = ocol;
 				}
-						
-				
+				prevResampleHeight = orow;
 			}
+			
 		}
-		(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
-			irow = (int) (counterRow * resampleHeight);
-			for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
-				icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
-				inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
-		
+		playFrame(outputBytes, 50, outputWidth, outputHeight);
 		return outputBytes;
 	}
 	
@@ -382,20 +418,11 @@ public class imageReader {
 						}
 					}
 				}				
-			}
-
-			try {
-				outputStream.write(outputBytes);
-				outputStream.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		      				
+			}	      				
 		}
 		if (operation.equals("SD2HD")) {
 			inputWidth = 176;
-			inputHeight = 144;
+			inputHeight = 144; 
 			outputWidth = 960;
 			outputHeight = 540;
 			resampleWidth = (float) outputWidth/inputWidth;
@@ -403,6 +430,14 @@ public class imageReader {
 			totalFrames = inputLen/(inputWidth*inputHeight*3);
 			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
+			outputBytes = scaleUp(inputLen, inputHeight, inputWidth, outputWidth, outputHeight, inputFile);
+		}
+		try {
+			outputStream.write(outputBytes);
+			outputStream.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
@@ -411,7 +446,7 @@ public class imageReader {
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
 		ren.resize(args);
-		String[] test = {"/Users/shane/Documents/workspace/imageReader/test/prison_176_144.rgb","176","144","10"};
+		String[] test = {"/Users/shane/Documents/workspace/imageReader/test/prison_960_540.rgb","960","540","10"};
 		ren.showIms(test);
 	}
 
