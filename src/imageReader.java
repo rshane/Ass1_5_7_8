@@ -263,13 +263,10 @@ public class imageReader {
 		int elements = (ratioHeight - prevRatioHeight) * (ratioWidth - prevRatioWidth);
 		while (elements > 0) {
 			int crntPxl = row*outputWidth + col;
-			if(row > 539) {
-				System.out.println(String.format("row: %d, col: %d, line266", row, col));
-			}
 			outputBytes[outputFrameIndex + crntPxl] = inputRedPxl; //current red pixel equal to inputRedPxl
 			outputBytes[outputFrameIndex + crntPxl + outputWidth*outputHeight] = inputGreenPxl; //current green pixel equal to inputGreenPxl
 			outputBytes[outputFrameIndex + crntPxl + outputWidth*outputHeight*2] = inputBluePxl; //current blue pixel equal to inputBluePxl
-			if (col == 0) {
+			if (col - prevRatioWidth == 0) {
 				row--;
 				col = ratioWidth -1;
 				elements --;
@@ -306,7 +303,6 @@ public class imageReader {
 		float resampleHeight = (float) outputHeight/inputHeight;
 		byte[] inputBytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 		int inputOffset = 0;
-		int inputIndex = 0;
 		int outputFrameIndex = 0;
 		for(int frameIndex = 0; frameIndex < totalFrames; frameIndex++){
 			inputOffset = inputHeight*inputWidth*3*frameIndex; //frame we are on in smaller picture
@@ -328,10 +324,68 @@ public class imageReader {
 			}
 			
 		}
-		playFrame(outputBytes, 50, outputWidth, outputHeight);
 		return outputBytes;
 	}
-	
+	public byte[] Averaging3x3(byte[] bytes, int height, int width, long totalFrames) {
+		byte[] averageBytes = new byte[bytes.length];
+		for(int frame = 0; frame < totalFrames; frame++){
+			//if (frame == 50) {
+			System.out.println (String.format("frame: %d", frame));
+		//	}
+			int frameIndex = height*width*3*frame;
+			for(int row = 0; row < height; row++) {
+				for(int col = 0; col < width; col++) {
+					//get cPxl and all its neighbors and average them
+					int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
+					int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0, totalPxls = 9;
+					for(int y= -1; y < 2; y++) {
+						boolean skipY =false;
+						if(row == 0 && y == -1) {
+							skipY = true;
+							totalPxls = totalPxls -3;
+						}
+						if(row == (height -1) && y ==1) {
+							skipY= true;
+							totalPxls = totalPxls -3;
+						}
+						if (!skipY) {
+							for(int x =-1; x < 2; x++) {
+								boolean skipX = false;
+								if (col == 0 && x == -1) {
+									skipX = true;
+									totalPxls = totalPxls -1;
+								}
+								if (col == (width -1) && x == 1) {
+									skipX = true;
+									totalPxls = totalPxls -1;
+								}
+								if (!skipX) {
+									nbrIndex = frameIndex + (row + y) * width + (col + x);
+									int nbrR = (bytes[nbrIndex] & 0xff) << 16;
+									int nbrG = (bytes[nbrIndex+height*width] & 0xff) << 8;
+									int nbrB = (bytes[nbrIndex+height*width*2] & 0xff);
+									totalNbrR = totalNbrR + nbrR;
+									totalNbrG = totalNbrG + nbrG;
+									totalNbrB = totalNbrB + nbrB;
+								}	
+							}
+						}	
+					}
+					nbrAvgR = 0x00ff0000 & (totalNbrR/totalPxls);
+					nbrAvgG = 0x0000ff00 & (totalNbrG/totalPxls);
+					nbrAvgB = 0x000000ff & (totalNbrB/totalPxls);
+					byte nbrAvgRByte = (byte) (nbrAvgR >> 16);
+					byte nbrAvgGByte = (byte) (nbrAvgG >> 8);
+					byte nbrAvgBByte = (byte) (nbrAvgB);
+					int crntPxlIndex = row * width + col;
+					averageBytes[frameIndex + crntPxlIndex] = nbrAvgRByte;
+					averageBytes[frameIndex + crntPxlIndex + height*width] = nbrAvgGByte;
+					averageBytes[frameIndex + crntPxlIndex + height*width*2] = nbrAvgBByte;
+				}
+			}
+		}
+		return averageBytes;
+	}
 
 	public void resize(String[] args){
 		File inputFile = new File(args[0]);
@@ -392,7 +446,7 @@ public class imageReader {
 							int nbrAvgR =0, nbrAvgG = 0, nbrAvgB = 0;
 							for(int y= -1; y < 2; y++) {
 								for(int x =-1; x < 2; x++) {
-									nbrIndex = inputOffset + (irow + y) * inputWidth + (icol + x); //help is it irow -1 +y?
+									nbrIndex = inputOffset + (irow + y) * inputWidth + (icol + x); 
 									int nbrR = (bytes[nbrIndex] & 0xff) << 16;
 									int nbrG = (bytes[nbrIndex+inputHeight*inputWidth] & 0xff) << 8;
 									int nbrB = (bytes[nbrIndex+inputHeight*inputWidth*2] & 0xff);
@@ -431,6 +485,9 @@ public class imageReader {
 			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 			outputBytes = scaleUp(inputLen, inputHeight, inputWidth, outputWidth, outputHeight, inputFile);
+			if (antiAliasing == 1) {
+				outputBytes = Averaging3x3(outputBytes, outputHeight, outputWidth, totalFrames); 
+			}
 		}
 		try {
 			outputStream.write(outputBytes);
