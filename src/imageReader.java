@@ -329,9 +329,6 @@ public class imageReader {
 	public byte[] Averaging3x3(byte[] bytes, int height, int width, long totalFrames) {
 		byte[] averageBytes = new byte[bytes.length];
 		for(int frame = 0; frame < totalFrames; frame++){
-			//if (frame == 50) {
-			System.out.println (String.format("frame: %d", frame));
-		//	}
 			int frameIndex = height*width*3*frame;
 			for(int row = 0; row < height; row++) {
 				for(int col = 0; col < width; col++) {
@@ -399,7 +396,7 @@ public class imageReader {
 		}
 		String operation = args[2];
 		int antiAliasing = Integer.parseInt(args[3]);
-		int inputWidth, inputHeight, outputWidth, outputHeight = 0;
+		int inputWidth, inputHeight, outputWidth = 0, outputHeight = 0;
 		int icol, irow = 0;
 		int cPxl = 0;
 		int  nbrAvg = 0;
@@ -487,7 +484,7 @@ public class imageReader {
 			outputBytes = scaleUp(inputLen, inputHeight, inputWidth, outputWidth, outputHeight, inputFile);
 			if (antiAliasing == 1) {
 				outputBytes = Averaging3x3(outputBytes, outputHeight, outputWidth, totalFrames); 
-			}
+			}	
 		}
 		try {
 			outputStream.write(outputBytes);
@@ -502,9 +499,11 @@ public class imageReader {
 
 	public static void main(String[] args) {
 		imageReader ren = new imageReader();
-		ren.resize(args);
-		String[] test = {"/Users/shane/Documents/workspace/imageReader/test/prison_960_540.rgb","960","540","10"};
-		ren.showIms(test);
+		if (args[2].equals("SD2HD") || args[2].equals("HD2SD")) {
+			ren.resize(args);
+		} else {
+			ren.showIms(args);
+		}
 	}
 
 }
