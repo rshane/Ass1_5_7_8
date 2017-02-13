@@ -427,16 +427,16 @@ public class imageReader {
 				inputOffset = inputHeight*inputWidth*3*frameIndex;
 				// int outputIndex = 0;
 				outputIndex = outputHeight*outputWidth*3*frameIndex; 
-				for(int counterRow = 1; (counterRow * resampleHeight) < inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
+				for(int counterRow = 1; (counterRow * resampleHeight) <= inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
 					irow = (int) (counterRow * resampleHeight);
-					for(int counterCol = 1; (counterCol*resampleWidth) < inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
+					for(int counterCol = 1; (counterCol*resampleWidth) <= inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
 						icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
 						inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
 						int a = 0;
 						byte cPxlRByte = bytes[inputIndex];
 						byte cPxlGByte = bytes[inputIndex+inputHeight*inputWidth];						
 						byte cPxlBByte = bytes[inputIndex+inputHeight*inputWidth*2];
-						int outputPxl = (counterCol -1) + (counterRow -1 )*outputWidth;
+						int outputPxl = (counterCol-1) + (counterRow-1)*outputWidth;
 						if (antiAliasing == 1) {
 							//get all cPxl neighbors and average them
 							int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
