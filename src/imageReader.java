@@ -417,7 +417,8 @@ public class imageReader {
 			outputBytes = new byte[(int) (outputWidth * outputHeight * totalFrames*3)];
 			bytes = RGBFile2Bytes(inputFile, inputWidth, inputHeight);
 			//BufferedImage[] allFramesInput = bytes2IMG(inputWidth, inputHeight, totalFrames, bytes);
-			
+			//test/st_960_540.rgb test/st_176_144.rgb HD2SD 1
+			//test/st_176_144.rgb 176 144  10
 
 			int inputOffset = 0;
 			int inputIndex = 0;
@@ -428,15 +429,15 @@ public class imageReader {
 				// int outputIndex = 0;
 				outputIndex = outputHeight*outputWidth*3*frameIndex; 
 				for(int counterRow = 1; (counterRow * resampleHeight) <= inputHeight; counterRow++){ //start at position (1,1) so when avg have values for 3x3
-					irow = (int) (counterRow * resampleHeight);
+					irow = (int) (counterRow * (int) resampleHeight);
 					for(int counterCol = 1; (counterCol*resampleWidth) <= inputWidth; counterCol++){  //inputCol =inputCol*resampleWidth
-						icol= (int) (counterCol* resampleWidth); // column rounded to nearest int
+						icol= (int) (counterCol* (int)resampleWidth); // column rounded to nearest int
 						inputIndex = inputOffset +  (irow - 1) * inputWidth + (icol - 1);
 						int a = 0;
 						byte cPxlRByte = bytes[inputIndex];
 						byte cPxlGByte = bytes[inputIndex+inputHeight*inputWidth];						
 						byte cPxlBByte = bytes[inputIndex+inputHeight*inputWidth*2];
-						int outputPxl = (counterCol-1) + (counterRow-1)*outputWidth;
+						int outputPxl = (counterCol-1) + (counterRow-1)*outputWidth;	
 						if (antiAliasing == 1) {
 							//get all cPxl neighbors and average them
 							int nbrIndex = 0, totalNbrR = 0, totalNbrG = 0, totalNbrB= 0;
